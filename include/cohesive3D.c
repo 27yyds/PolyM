@@ -668,28 +668,27 @@ bool Cohesive3D_InsertCohesiveAtFace_Manual(PolyModel *model, int FaceInput){
 
 
 int Cohesive3D_InsertCohesiveAtFace_Auto(PolyModel *model, int FaceInput){
-	int i,j,k;
-//	char string[20] = {0,}; //for user's input during execution of this function
+	int i;
+	int newelemid, newfaceid, newnodeid;
 	
-	bool bo_facevalid = Face_IsValid(model, FaceInput);
-	if(!bo_facevalid){
-//		printf("Error! Face %d is not a valid one. Please input another one. \n", FaceInput);
+	if(!Face_IsValid(model, FaceInput)){
+		printf("Error! Face %d is not a valid one. Please input another one. \n", FaceInput);
+		return 0;
 	}
 	else{
 		Elem Elemlist = Face_GetElem(model,FaceInput);
 		if(Elemlist.cnt == 1){
-//			 printf("Error! It is illegal to insert cohesive element at a boundary Face %d. Please input another one. \n", FaceInput);
-
+			 printf("Error! It is illegal to insert cohesive element at a boundary Face %d. Please input another one. \n", FaceInput);
 		}
 		else if(Elemlist.cnt != 2){
-//			 printf("Error! Face %d has neither 1 or 2 adjacent elements. Check Cohesive3D_InsertCohesiveAtFace_Manual\n", FaceInput);
+			 printf("Error! Face %d has neither 1 or 2 adjacent elements. Check Cohesive3D_InsertCohesiveAtFace_Manual\n", FaceInput);
 		}
 		else if(Elemlist.cnt == 2){
 			if(!Elem_IsBulk(model, Elemlist.ElemInfo[0]) || !Elem_IsBulk(model, Elemlist.ElemInfo[1])){
-//				 printf("Error! Face %d is a barrier or is illegal. Please input another one. \n", FaceInput);
+				 printf("Error! Face %d is a barrier or is illegal. Please input another one. \n", FaceInput);
 			}
 			else if(Elem_IsBulk(model, Elemlist.ElemInfo[0]) && Elem_IsBulk(model, Elemlist.ElemInfo[1])){
-//				 printf("Face %d is valid for insertion . \n", FaceInput);
+				printf("Face %d is valid for insertion . \n", FaceInput);
 				int Elem1 = Elemlist.ElemInfo[0];
 				int Elem2 = Elemlist.ElemInfo[1];
 
@@ -722,246 +721,49 @@ int Cohesive3D_InsertCohesiveAtFace_Auto(PolyModel *model, int FaceInput){
 					Now we have the list of nodes that are needed to be duplicated .  We First start from replicating the faces then 
 					continue with duplicating the nodes . 
 				*/
-				
-				/*
-					Replication of FaceInput .
-				*/
-				int newelemid, newfaceid;
 				newelemid = polyModel_GetELEMIDMAX(model)+1;
 				newfaceid = polyModel_GetFACEIDMAX(model)+1;
-				Cohesive3D_Face_CreateElem(model, FaceInput, newelemid, newfaceid, Elem1);
+				bool isCreated = Cohesive3D_Face_CreateElem(model, FaceInput, newelemid, newfaceid, Elem1);
 
-				/*
-					Now we duplicate the nodes one by one . In this step , duplication of a node ( say , N_prev ), 
-					will not affect the duplication of the next one ( say , N_next ) . 
-					This is because when we duplicate N_prev , we only update the index of N_prev to N_prev_prime 
-					in some of the elements , and renew NE table . None of the connectivities related to N_next
-					or its ElemHome and ElemAway is changed . 
-				*/
-				int elemhome=0, elemaway=0;
-				int elem_update=0;
-				int elemlocation=0;
-				for(i=0;i<NodeDuplList.Node_cnt;i++){
-					int NodeDuplCurr = NodeDuplList.NodeDupl_ListInfo[i].Node_Id;
-					elem_update = Elem1;
+				if(isCreated){
 					/*
-							Elem 1 is always in ElemHome
+						Now we duplicate the nodes one by one . In this step , duplication of a node ( say , N_prev ), 
+						will not affect the duplication of the next one ( say , N_next ) . 
+						This is because when we duplicate N_prev , we only update the index of N_prev to N_prev_prime 
+						in some of the elements , and renew NE table . None of the connectivities related to N_next
+						or its ElemHome and ElemAway is changed . 
 					*/
-					Elem ElemUpdate, ElemLocked;
-					ElemUpdate.cnt=0;
-  				memset(ElemUpdate.ElemInfo,0,sizeof(ElemUpdate.ElemInfo));
-  				ElemLocked.cnt=0;
-  				memset(ElemLocked.ElemInfo,0,sizeof(ElemLocked.ElemInfo));
-  				
+					int elem_update=Elem1;
+					int NodeDuplCurr;
+					for(i=0;i<NodeDuplList.Node_cnt;i++){
+						NodeDuplCurr = NodeDuplList.NodeDupl_ListInfo[i].Node_Id;
+						/*
+								Elem 1 is always in ElemHome
+						*/
+						Elem ElemUpdate, ElemLocked;
+						ElemUpdate.cnt=0;
+	  				memset(ElemUpdate.ElemInfo,0,sizeof(ElemUpdate.ElemInfo));
+	  				ElemLocked.cnt=0;
+	  				memset(ElemLocked.ElemInfo,0,sizeof(ElemLocked.ElemInfo));
+	  				
+						ElemUpdate.cnt=NodeDuplList.NodeDupl_ListInfo[i].ElemHome_cnt;
+						memcpy(ElemUpdate.ElemInfo,NodeDuplList.NodeDupl_ListInfo[i].ElemHome_Id,sizeof(int)*ElemUpdate.cnt);
+					  ElemLocked.cnt=NodeDuplList.NodeDupl_ListInfo[i].ElemAway_cnt;
+						memcpy(ElemLocked.ElemInfo,NodeDuplList.NodeDupl_ListInfo[i].ElemAway_Id,sizeof(int)*ElemLocked.cnt);
+						
 
-					ElemUpdate.cnt=NodeDuplList.NodeDupl_ListInfo[i].ElemHome_cnt;
-					memcpy(ElemUpdate.ElemInfo,NodeDuplList.NodeDupl_ListInfo[i].ElemHome_Id,sizeof(int)*ElemUpdate.cnt);
-				  ElemLocked.cnt=NodeDuplList.NodeDupl_ListInfo[i].ElemAway_cnt;
-					memcpy(ElemLocked.ElemInfo,NodeDuplList.NodeDupl_ListInfo[i].ElemAway_Id,sizeof(int)*ElemLocked.cnt);
-					
-
-					int newnodeid = polyModel_GetNODEIDMAX(model)+1;
-					Cohesive3D_CreateNode(model, 0, 0, 0, 1, newnodeid);
-					Cohesive3D_UpdateNode(model, NodeDuplCurr, newnodeid, newelemid, ElemUpdate, ElemLocked);
-
-//					printf("\n ********** Node %d Duplicated . New Node %d in Elem %d . ********** \n\n", NodeDuplCurr, newnodeid, ElemUpdate.ElemInfo[0]);
-				
-				return newelemid;
+						newnodeid = polyModel_GetNODEIDMAX(model)+1;
+						Cohesive3D_CreateNode(model, 0, 0, 0, 1, newnodeid);
+						Cohesive3D_UpdateNode(model, NodeDuplCurr, newnodeid, newelemid, ElemUpdate, ElemLocked);
+						printf("\n ********** Node %d Duplicated . New Node %d in Elem %d . ********** \n\n", NodeDuplCurr, newnodeid, ElemUpdate.ElemInfo[0]);
+					}
 				}
 			}
 		}
 	}
+	
+	return newelemid;
 }
-
-
-bool Cohesive3D_InsertCohesiveAtFace_Test(PolyModel *model, int* reflist){
-	/*
-		Structure of reflist : 
-		[Node1 Node2 Node3 Refelem1 Refelem2 Refelem3 CohNode1 CohNode2 CohNode3 CohNode4 CohNode5 CohNode6]
-
-		Refelem corresponds to the newly inserted CohNode
-	*/
-	int FaceInput = Test_Nodes_GetFace(model, reflist[0], reflist[1], reflist[2]);
-	
-	
-	int i,j,k;
-	char string[20] = {0,}; //for user's input during execution of this function
-	
-	bool bo_facevalid = Face_IsValid(model, FaceInput);
-	if(!bo_facevalid){
-//		// printf("Error! Face %d is not a valid one. Please input another one. \n", FaceInput);
-	}
-	else{
-		Elem Elemlist = Face_GetElem(model,FaceInput);
-		if(Elemlist.cnt == 1){
-//			// printf("Error! It is illegal to insert cohesive element at a boundary Face %d. Please input another one. \n", FaceInput);
-
-		}
-		else if(Elemlist.cnt != 2){
-//			// printf("Error! Face %d has neither 1 or 2 adjacent elements. Check Cohesive3D_InsertCohesiveAtFace_Manual\n", FaceInput);
-		}
-		else if(Elemlist.cnt == 2){
-			if(!Elem_IsBulk(model, Elemlist.ElemInfo[0]) || !Elem_IsBulk(model, Elemlist.ElemInfo[1])){
-//				// printf("Error! Face %d is a barrier or is illegal. Please input another one. \n", FaceInput);
-			}
-			else if(Elem_IsBulk(model, Elemlist.ElemInfo[0]) && Elem_IsBulk(model, Elemlist.ElemInfo[1])){
-//				// printf("Face %d is valid for insertion . \n", FaceInput);
-				int Elem1 = Elemlist.ElemInfo[0];
-				int Elem2 = Elemlist.ElemInfo[1];
-
-				NodeDupl_List NodeDuplList;
-				NodeDuplList.Node_cnt=0;
-				for(i=0;i<=NodeDupl_ListSize;i++){
-					NodeDuplList.NodeDupl_ListInfo[i].Node_Id=0;
-				 	NodeDuplList.NodeDupl_ListInfo[i].ElemHome_cnt=0;
-				  NodeDuplList.NodeDupl_ListInfo[i].ElemAway_cnt=0;
-				  memset(NodeDuplList.NodeDupl_ListInfo[i].ElemHome_Id,0,sizeof(NodeDuplList.NodeDupl_ListInfo[i].ElemHome_Id));
-					memset(NodeDuplList.NodeDupl_ListInfo[i].ElemAway_Id,0,sizeof(NodeDuplList.NodeDupl_ListInfo[i].ElemAway_Id));
-				}
-			  
-				Node Nodelist = Face_GetNode(model,FaceInput);
-				
-				for(i=0;i<Nodelist.cnt;i++){
-					int NodeCurr = Nodelist.NodeInfo[i];
-					NodeCheck NodeCheckCurr = Cohesive3D_FaceNode_GatherElem(model, NodeCurr, FaceInput, Elem1, Elem2);
-					if(NodeCheckCurr.ElemAway_cnt!=0){  /* which means we have to store this node information */
-						NodeDuplList.NodeDupl_ListInfo[NodeDuplList.Node_cnt].Node_Id=NodeCheckCurr.Node_Id;
-						NodeDuplList.NodeDupl_ListInfo[NodeDuplList.Node_cnt].ElemHome_cnt=NodeCheckCurr.ElemHome_cnt;
-						memcpy(NodeDuplList.NodeDupl_ListInfo[NodeDuplList.Node_cnt].ElemHome_Id,NodeCheckCurr.ElemHome_Id,sizeof(int)*NodeCheckCurr.ElemHome_cnt);
-						NodeDuplList.NodeDupl_ListInfo[NodeDuplList.Node_cnt].ElemAway_cnt=NodeCheckCurr.ElemAway_cnt;
-						memcpy(NodeDuplList.NodeDupl_ListInfo[NodeDuplList.Node_cnt].ElemAway_Id,NodeCheckCurr.ElemAway_Id,sizeof(int)*NodeCheckCurr.ElemAway_cnt);
-						NodeDuplList.Node_cnt++;
-					}	
-				}
-				
-				/* 
-					Now we have the list of nodes that are needed to be duplicated .  We First start from replicating the faces then 
-					continue with duplicating the nodes . 
-				*/
-				
-				/*
-					Replication of FaceInput .
-				*/
-				bool isElemInserted = false;
-				int newelemid, newfaceid;
-				newelemid = polyModel_GetELEMIDMAX(model)+1;
-				newfaceid = polyModel_GetFACEIDMAX(model)+1;
-				isElemInserted = Cohesive3D_Face_CreateElem(model, FaceInput, newelemid, newfaceid, Elem1);
-				
-				/*
-					Now we duplicate the nodes one by one . In this step , duplication of a node ( say , N_prev ), 
-					will not affect the duplication of the next one ( say , N_next ) . 
-					This is because when we duplicate N_prev , we only update the index of N_prev to N_prev_prime 
-					in some of the elements , and renew NE table . None of the connectivities related to N_next
-					or its ElemHome and ElemAway is changed . 
-				*/
-				int elemhome=0, elemaway=0;
-				int elem_update=0;
-				int elemlocation=0;
-				for(i=0;i<NodeDuplList.Node_cnt;i++){
-					
-					int NodeDuplCurr = NodeDuplList.NodeDupl_ListInfo[i].Node_Id;
-//					// printf("Node %d need to be duplicated. The reference elements for ElemHome are : \n Elem Ids : ", NodeDuplCurr);
-					
-//					for(j=0;j<NodeDuplList.NodeDupl_ListInfo[i].ElemHome_cnt;j++){
-//						elemhome=NodeDuplList.NodeDupl_ListInfo[i].ElemHome_Id[j];
-//						// printf("%d ", elemhome);
-//					}
-//					// printf("\n");
-					
-//					// printf("The reference elements for ElemAway are : \n Elem Ids : ");
-//					for(j=0;j<NodeDuplList.NodeDupl_ListInfo[i].ElemAway_cnt;j++){
-//						elemaway=NodeDuplList.NodeDupl_ListInfo[i].ElemAway_Id[j];
-//						// printf("%d ", elemaway);
-//					}
-//					// printf("\n");
-					
-					int newnodeid;
-					for(j=0;j<3;j++){
-						if(NodeDuplCurr==reflist[6+j]||NodeDuplCurr==reflist[9+j]){
-							elem_update = reflist[3+j];
-							if(reflist[6+j]<reflist[9+j]){
-								newnodeid=reflist[9+j];
-							}
-							else{
-								newnodeid=reflist[6+j];
-							}
-						}
-					}
-					/*
-							elemlocation indicates which group to receive the new node Id . 
-							case 1 : elemlocation == 1 ElemHome receives 
-							case 2 : elemlocation == 2 ElemAway receives 
-					*/
-
-					for(j=0;j<NodeDuplList.NodeDupl_ListInfo[i].ElemHome_cnt;j++){
-						if(elem_update == NodeDuplList.NodeDupl_ListInfo[i].ElemHome_Id[j]){
-							elemlocation=1;
-							break;
-						}
-					}
-					if(j==NodeDuplList.NodeDupl_ListInfo[i].ElemHome_cnt){
-						elemlocation=0;
-					}
-					if(elemlocation!=1){
-						for(j=0;j<NodeDuplList.NodeDupl_ListInfo[i].ElemAway_cnt;j++){
-							if(elem_update == NodeDuplList.NodeDupl_ListInfo[i].ElemAway_Id[j]){
-								elemlocation=2;
-							}
-						}
-					}
-					
-//					// printf("elemlocation =%d \n", elemlocation);
-					
-					Elem ElemUpdate, ElemLocked;
-					ElemUpdate.cnt=0;
-  				memset(ElemUpdate.ElemInfo,0,sizeof(ElemUpdate.ElemInfo));
-  				ElemLocked.cnt=0;
-  				memset(ElemLocked.ElemInfo,0,sizeof(ElemLocked.ElemInfo));
-  				
-  				if(elemlocation==1){
-  					ElemUpdate.cnt=NodeDuplList.NodeDupl_ListInfo[i].ElemHome_cnt;
-  					memcpy(ElemUpdate.ElemInfo,NodeDuplList.NodeDupl_ListInfo[i].ElemHome_Id,sizeof(int)*ElemUpdate.cnt);
-  				  ElemLocked.cnt=NodeDuplList.NodeDupl_ListInfo[i].ElemAway_cnt;
-  					memcpy(ElemLocked.ElemInfo,NodeDuplList.NodeDupl_ListInfo[i].ElemAway_Id,sizeof(int)*ElemLocked.cnt);
-  				}
-  				else if(elemlocation==2){
-  					ElemUpdate.cnt=NodeDuplList.NodeDupl_ListInfo[i].ElemAway_cnt;
-  					memcpy(ElemUpdate.ElemInfo,NodeDuplList.NodeDupl_ListInfo[i].ElemAway_Id,sizeof(int)*ElemUpdate.cnt);
-  				  ElemLocked.cnt=NodeDuplList.NodeDupl_ListInfo[i].ElemHome_cnt;
-  					memcpy(ElemLocked.ElemInfo,NodeDuplList.NodeDupl_ListInfo[i].ElemHome_Id,sizeof(int)*ElemLocked.cnt);
-  				}
-					
-					// printf("Node %d will be Duplicated in Elem %d and its neighbors. \n", NodeDuplCurr, elem_update);
-					
-					// printf("ElemUpdate : ");
-					for(j=0;j<ElemUpdate.cnt;j++){
-						// printf("%d ",ElemUpdate.ElemInfo[j]);
-					}
-					// printf("\n");
-//					// printf("ElemLocked : ");
-//					for(j=0;j<ElemLocked.cnt;j++){
-//						// printf("%d ",ElemLocked.ElemInfo[j]);
-//					}
-//					// printf("\n");
-					
-					bool nodeId_available_flag = false;
-
-					nodeId_available_flag = Cohesive3D_CreateNode(model, 0, 0, 0, 1, newnodeid);
-					if( !nodeId_available_flag ){
-						// printf("Error! Please input an available node Id. \n");
-					}
-
-					Cohesive3D_UpdateNode(model, NodeDuplCurr, newnodeid, newelemid, ElemUpdate, ElemLocked);
-
-					// printf("\n ********** Node %d Duplicated . New Node %d in Elem %d . ********** \n\n", NodeDuplCurr, newnodeid, ElemUpdate.ElemInfo[0]);
-				}
-			}
-		}
-	}
-}
-
-
 
 
 int Test_Nodes_GetFace(PolyModel* model, int Node1, int Node2, int Node3){
