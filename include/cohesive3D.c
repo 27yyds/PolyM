@@ -482,7 +482,7 @@ bool Cohesive3D_InsertCohesiveAtFace_Manual(PolyModel *model, int FaceInput){
 
 				NodeDupl_List NodeDuplList;
 				NodeDuplList.Node_cnt=0;
-				for(i=0;i<=NodeDupl_ListSize;i++){
+				for(i=0;i<NodeDupl_ListSize-1;i++){
 					NodeDuplList.NodeDupl_ListInfo[i].Node_Id=0;
 				 	NodeDuplList.NodeDupl_ListInfo[i].ElemHome_cnt=0;
 				  NodeDuplList.NodeDupl_ListInfo[i].ElemAway_cnt=0;
@@ -694,7 +694,7 @@ int Cohesive3D_InsertCohesiveAtFace_Auto(PolyModel *model, int FaceInput){
 
 				NodeDupl_List NodeDuplList;
 				NodeDuplList.Node_cnt=0;
-				for(i=0;i<=NodeDupl_ListSize;i++){
+				for(i=0;i<NodeDupl_ListSize-1;i++){
 					NodeDuplList.NodeDupl_ListInfo[i].Node_Id=0;
 				 	NodeDuplList.NodeDupl_ListInfo[i].ElemHome_cnt=0;
 				  NodeDuplList.NodeDupl_ListInfo[i].ElemAway_cnt=0;
