@@ -1,6 +1,0 @@
-48
-49
-
-Note that 48 first, 49 last
-
-Element 2, Element 10 have these faces

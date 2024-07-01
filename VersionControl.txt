@@ -1,0 +1,5 @@
+<PolyM_240701>
+First version of cohesive element insertion . Performance tests are based on this version . 
+
+<PolyM>
+240701 If two elements share more than 1 face , the criteria is not applicable . 
