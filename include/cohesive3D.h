@@ -1,4 +1,4 @@
-#ifndef __COHESIVE3D_H__
+ #ifndef __COHESIVE3D_H__
 #define __COHESIVE3D_H__
 
 typedef struct NodeCheck
@@ -23,13 +23,13 @@ bool Cohesive3D_Elem_IsCohesive(PolyModel *model, int ElemInput);
 
 bool Cohesive3D_Face_IsBarrier(PolyModel *model, int FaceInput);
 
-bool Cohesive3D_ElemElem_IsAdjacent(PolyModel *model, int ElemInput1, int ElemInput2, int FaceInput);
+bool Cohesive3D_ElemElem_IsAdjacent(PolyModel *model, int ElemInput1, int ElemInput2, int FaceInput, bool FaceRefbool, Face FaceReflist);
 
 Elem Cohesive3D_Node_GetBulkElem(PolyModel *model, int NodeInput);
 
 Elem Cohesive3D_Node_GetCohsElem(PolyModel *model, int NodeInput);
 
-void Cohesive3D_ElemElem_DFS(PolyModel *model, int ElemInput1, int ElemInput2, Elem ElemBulkToNodeCurr, int FaceInput, int* visited);
+void Cohesive3D_ElemElem_DFS(PolyModel *model, int ElemInput1, int ElemInput2, Elem ElemBulkToNodeCurr, int NodeInput, int FaceInput, int* visited);
 
 NodeCheck Cohesive3D_FaceNode_GatherElem(PolyModel *model, int NodeInput, int FaceInput, int Elem1, int Elem2);
 

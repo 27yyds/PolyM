@@ -32,8 +32,8 @@ int main (int argc, char* argv[])
 	// ****************************
 //	
 //	polyModel_PrintAllFaceData(model);
-	Cohesive3D_InsertCohesiveAtFace_Auto(model, 40);
-	Cohesive3D_InsertCohesiveAtFace_Auto(model, 44);
+	Cohesive3D_InsertCohesiveAtFace_Auto(model, 48);
+	Cohesive3D_InsertCohesiveAtFace_Auto(model, 49);
 //	
 	polyModel_PrintAllFaceData(model);
 	polyModel_PrintAllElemData(model);

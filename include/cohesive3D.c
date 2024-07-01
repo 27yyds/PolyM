@@ -43,17 +43,31 @@ bool Cohesive3D_Face_IsBarrier(PolyModel *model, int FaceInput){
 	return IsBarr;
 }
 
-bool Cohesive3D_ElemElem_IsAdjacent(PolyModel *model, int ElemInput1, int ElemInput2, int FaceInput){
+bool Cohesive3D_ElemElem_IsAdjacent(PolyModel *model, int ElemInput1, int ElemInput2, int FaceInput, bool FaceRefbool, Face FaceReflist){
 	bool isAdj = false;
-	int i,j;
+	int i,j,k;
 	
 	Face Face1 = Elem_GetFace(model, ElemInput1);
 	Face Face2 = Elem_GetFace(model, ElemInput2);
 	
+	
 	for(i=0;i<Face1.cnt;i++){
 		for(j=0;j<Face2.cnt;j++){
 			if(Face1.FaceInfo[i]==Face2.FaceInfo[j] && Face1.FaceInfo[i]!=FaceInput){
-				isAdj = true;
+				if(FaceRefbool == true){
+					for(k=0;k<FaceReflist.cnt;k++){
+						if(Face1.FaceInfo[i]==FaceReflist.FaceInfo[k]){
+							isAdj = true;
+							break;
+						}
+					}
+				}
+				else{
+					isAdj = true;
+					break;
+				}
+			}
+			if(isAdj == true){
 				break;
 			}
 		}
@@ -101,8 +115,11 @@ Elem Cohesive3D_Node_GetCohsElem(PolyModel *model, int NodeInput){
 	return ElemReturn;
 }
 
-void Cohesive3D_ElemElem_DFS(PolyModel *model, int ElemInput1, int ElemInput2, Elem ElemBulkToNodeCurr, int FaceInput, int* visited){
+void Cohesive3D_ElemElem_DFS(PolyModel *model, int ElemInput1, int ElemInput2, Elem ElemBulkToNodeCurr, int NodeInput, int FaceInput, int* visited){
+	Face FaceReflist = Node_GetFace(model, NodeInput);
+	
 	int i,j;
+	
 	if(visited[1] == 1){
 		return;
 	}
@@ -112,7 +129,7 @@ void Cohesive3D_ElemElem_DFS(PolyModel *model, int ElemInput1, int ElemInput2, E
 		}
 	}
 	// printf("%d ", ElemInput1);
-	if(Cohesive3D_ElemElem_IsAdjacent(model, ElemInput1, ElemInput2, FaceInput)){
+	if(Cohesive3D_ElemElem_IsAdjacent(model, ElemInput1, ElemInput2, FaceInput, true, FaceReflist)){
 		// printf("%d ", ElemInput2);
 		visited[1] = 1;
 		return;
@@ -121,8 +138,8 @@ void Cohesive3D_ElemElem_DFS(PolyModel *model, int ElemInput1, int ElemInput2, E
 		if(visited[1] == 1){
 			break;
 		}
-		if (!visited[j] && Cohesive3D_ElemElem_IsAdjacent(model, ElemInput1, ElemBulkToNodeCurr.ElemInfo[j], FaceInput)) {
-		    Cohesive3D_ElemElem_DFS(model, ElemBulkToNodeCurr.ElemInfo[j], ElemInput2, ElemBulkToNodeCurr, FaceInput,visited);
+		if (!visited[j] && Cohesive3D_ElemElem_IsAdjacent(model, ElemInput1, ElemBulkToNodeCurr.ElemInfo[j], FaceInput, true, FaceReflist)) {
+			Cohesive3D_ElemElem_DFS(model, ElemBulkToNodeCurr.ElemInfo[j], ElemInput2, ElemBulkToNodeCurr, NodeInput, FaceInput, visited);
 		}
 	}
 }
@@ -187,7 +204,7 @@ NodeCheck Cohesive3D_FaceNode_GatherElem(PolyModel *model, int NodeInput, int Fa
 	
 	// printf("Elements from DFS: ");
 	
-	Cohesive3D_ElemElem_DFS(model, Elem1, Elem2, ElemBulkToNodeCurr, FaceInput, visited);
+	Cohesive3D_ElemElem_DFS(model, Elem1, Elem2, ElemBulkToNodeCurr, NodeInput, FaceInput, visited);
 	
 	// printf("\n");
 	
@@ -373,6 +390,7 @@ bool Cohesive3D_UpdateNode(PolyModel *model, int NodeCurr, int newnodeid, int Co
 						union set 3 ) And delete it from CohsToDeleteInOldNode
 	*/
 	Elem AllCohs = Cohesive3D_Node_GetCohsElem(model, NodeCurr);
+	Face AllFace = Node_GetFace(model, NodeCurr);
 	bool isFriend;
 	Elem CohsToDeleteInOldNode;
 	CohsToDeleteInOldNode.cnt=AllCohs.cnt;
@@ -380,7 +398,7 @@ bool Cohesive3D_UpdateNode(PolyModel *model, int NodeCurr, int newnodeid, int Co
 	for(i=0;i<CohsToDeleteInOldNode.cnt;i++){
 		isFriend = false;
 		for(j=0;j<ElemLocked.cnt;j++){
-			if(Cohesive3D_ElemElem_IsAdjacent(model, CohsToDeleteInOldNode.ElemInfo[i], ElemLocked.ElemInfo[j], 0)){
+			if(Cohesive3D_ElemElem_IsAdjacent(model, CohsToDeleteInOldNode.ElemInfo[i], ElemLocked.ElemInfo[j], 0, true, AllFace)){
 				isFriend = true;
 			}
 		}
@@ -426,7 +444,7 @@ bool Cohesive3D_UpdateNode(PolyModel *model, int NodeCurr, int newnodeid, int Co
   for(i=0;i<AllCohs.cnt;i++){
 		isFriend = false;
 		for(j=0;j<ElemUpdate.cnt;j++){
-			if(Cohesive3D_ElemElem_IsAdjacent(model, AllCohs.ElemInfo[i], ElemUpdate.ElemInfo[j], 0)){
+			if(Cohesive3D_ElemElem_IsAdjacent(model, AllCohs.ElemInfo[i], ElemUpdate.ElemInfo[j], 0, true, AllFace)){
 				isFriend = true;
 				break;
 			}
